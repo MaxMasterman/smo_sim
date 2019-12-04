@@ -10,43 +10,54 @@ import pandas as pd
 import numpy as np
 from scipy.integrate import odeint
 
-from components import Signal, Velve
+from components import FLUID, SIGNAL, PUMP, VELVE, TUBE 
 
-Us = 5 # amplitude
+Pump = PUMP() 
+Tube = TUBE()
+Water = FLUID()
+
+#Druckamplitude und Offset aus Pumpenparametern berechnen
+VAmp = Pump.VAmp
+VOff = Pump.VOff
+
 Cp = 1 # pumpkammerkapazität
-Rs = 1 # schlauchwiderstand
+Rs = 2 # Dummy schlauchwiderstand
+#Rs = (8*Water.ethaD*Tube.L)/(np.pi*(Tube.D/2)**4) # Schlauchwiderstand
 Rv = 1 # ventilwiderstand
-Ur = 0 # reservoirdruck
-Uc0 = 0 # startdruck in der pumpkammer
+
+Pr = 0 # reservoirdruck
+Pc0 = 0 # startdruck in der pumpkammer
 
 T = 35*(Rs+Rv)*Cp # ladedauer | warum nicht faktor 5 !?
 steps = 500 # anzahl der zeitschritte
 t_space = np.linspace(0, 2*T, steps, endpoint=True)
 
-signal = Signal(amplitude=Us, frequency=1/T)
-us = signal.rect # anregungssignal der pumpe
-velve = Velve(R=Rv)  
-Rvelve = velve.const # ventiltyp
+Signal = SIGNAL(amplitude=VAmp, frequency=1/T, offset=VOff)
+Vs = Signal.rect(dt) # Spannungs-Anregungssignal der pumpe
+Ps = Pump.stroke(Vs) # Druck-Anregungssignal der pumpe
+
+Velve = VELVE(R=Rv)  
+Rvelve = Velve.const # ventiltyp
     
 i_scale = 5 # hängt auch von der anzahl der zeitschritte ab!
 
 ##############################################################################
 
-def du_dt(u, t):
-    u = u[0]
-    uv = (Ur-us(t)+u)*Rv/(Rv+Rs)-us(t)+u
-    return (us(t)-u+Ur)/((Rs+Rvelve(uv))*Cp)
+def dp_dt(p, t):
+    p = p[0]
+    pv = (Pr-Ps(t)+p)*Rv/(Rv+Rs)-Ps(t)+p
+    return (Ps(t)-p+Pr)/((Rs+Rvelve(pv))*Cp)
     
-uc = odeint(du_dt, Uc0, t_space)[:,0]
+Pc = odeint(dp_dt, Pc0, t_space)[:,0]
 
-data = pd.DataFrame(columns = ['t', 'us', 'uc', 'ur', 'i'])
-data['uc'] =  uc
+data = pd.DataFrame(columns = ['t', 'Ps', 'Pc', 'Pr', 'i'])
+data['Pc'] =  Pc
 data['t'] =  t_space
-data['us'] = [us(t) for t in t_space]
-data['ur'] = [Ur for _ in t_space]
-data['i'] = np.gradient(uc)*i_scale
+data['Ps'] = [Ps(t) for t in t_space]
+data['Pr'] = [Pr for _ in t_space]
+data['i'] = np.gradient(Pc)*i_scale
 
-axes = data.plot(x='t', y=['us', 'uc', 'ur', 'i'], grid=True)
+axes = data.plot(x='t', y=['Ps', 'Pc', 'Pr', 'i'], grid=True)
 axes.set_title('Simple Pump')
 axes.set_xlabel('Time [s]')
 axes.set_ylabel('Voltage [V]')
