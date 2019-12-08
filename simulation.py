@@ -33,7 +33,7 @@ steps = 500 # anzahl der zeitschritte
 t_space = np.linspace(0, 2*T, steps, endpoint=True)
 
 Signal = SIGNAL(amplitude=VAmp, frequency=1/T, offset=VOff)
-Vs = Signal.rect(dt) # Spannungs-Anregungssignal der pumpe
+Vs = Signal.rect(t) # Spannungs-Anregungssignal der pumpe
 Ps = Pump.stroke(Vs) # Druck-Anregungssignal der pumpe
 
 Velve = VELVE(R=Rv)  

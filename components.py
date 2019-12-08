@@ -14,13 +14,13 @@ class SIGNAL:
         self.amplitude = amplitude
         self.period = 1/frequency
         self.offset = offset
-    
+        
     def rect(self, t):
         if (t % self.period) <= self.period/2:
             return self.amplitude + self.offset
         else:
             return -self.amplitude + self.offset
-        
+    
     def sin(self, t):
         return self.amplitude*(np.sin(2*np.pi*t/self.period)) + self.offset
     
