@@ -1,4 +1,5 @@
 import numpy as np
+from materials import Water
 
 class Signal:
     
@@ -48,9 +49,11 @@ class Pump:
                 return self.zmin*voltage/self.Vmin
         
     def C(self, voltage):
-        # C = A*z/(Rgs*T)
-        # return self.A*self.stroke(voltage)/(self.medium.Rgs*self.medium.T)
-        return 1
+        # Cf = z*A*kappa # hydraulische Kapazität des Fluids (Option 1)
+        # Ck = # Kapazität des Kammermaterials (Option 2)
+        # Cm = # Kapazität der Kammermembran (Option 3)
+        return self.A*self.stroke(voltage)*self.medium.kappa # (Option 1)
+        # return 1
     
     def P(self, voltage):
         if voltage > 0:
@@ -101,8 +104,8 @@ class Tube:
         self.medium=medium
 
     def R(self):
-        # return (8*self.medium.ethaD*self.l)/(np.pi*(self.r)**4)
-        return 1
+        return (8*self.medium.ethaD*self.l)/(np.pi*(self.r)**4)
+        # return 1
     
 
 if __name__ == '__main__':
@@ -123,12 +126,12 @@ if __name__ == '__main__':
     ax1.set_ylabel('Voltage [V]')
     
     # vizualize velve resistance
-    v1 = Velve(R_open=1, R_close=10**9, direction='forward')
-    v2 = Velve(R_open=1, R_close=10**9, direction='backward')
+    velve1 = Velve(R_open=1, R_close=10**9, direction='forward')
+    velve2 = Velve(R_open=1, R_close=10**9, direction='backward')
     curves = pd.DataFrame(columns=['u', 'v_fw', 'v_bw'])
     curves['u'] = np.linspace(-1, 1, 251)
-    curves['v_fw'] = [v1.R(u) for u in curves['u']]
-    curves['v_bw'] = [v2.R(u) for u in curves['u']]
+    curves['v_fw'] = [velve1.R(u) for u in curves['u']]
+    curves['v_bw'] = [velve2.R(u) for u in curves['u']]
     curves.plot(x='u', y=['v_fw', 'v_bw'], ax=ax2)
     ax2.set_yscale('log')
     ax2.set_xlabel('Voltage [V]')
@@ -137,7 +140,7 @@ if __name__ == '__main__':
     fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
     
     # visualize pump pressure and capacity
-    pump = Pump()
+    pump = Pump(medium=water)
     curves = pd.DataFrame(columns=['vcc', 'pressure'])
     curves['vcc'] = np.linspace(-100, 300, 251)
     curves['pressure']  = [pump.P(v)  for v in curves['vcc']]
@@ -150,18 +153,3 @@ if __name__ == '__main__':
     curves.plot(x='vcc', y='capacity', ax=ax2)
     ax2.set_xlabel('Voltage [V]')
     ax2.set_ylabel('Pressure [m³/kPa]')    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
