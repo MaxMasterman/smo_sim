@@ -1,20 +1,23 @@
 import numpy as np
 from materials import Water
+water = Water()
+
 
 class Signal:
     
-    def __init__(self, amplitude, frequency):
+    def __init__(self, amplitude, frequency, offset=0):
         self.amplitude = amplitude
         self.period = 1/frequency
+        self.offset = offset
     
     def rect(self, t):
         if (t % self.period) <= self.period/2:
-            return self.amplitude
+            return self.amplitude + self.offset
         else:
-            return -self.amplitude
+            return -self.amplitude + self.offset
         
     def sin(self, t):
-        return self.amplitude*(np.sin(2*np.pi*t/self.period))
+        return self.amplitude*(np.sin(2*np.pi*t/self.period)) + self.offset
     
     
 class Pump:
@@ -32,8 +35,11 @@ class Pump:
         
         self.Vmax = 240 # V operation voltage
         self.Vmin = -76 # V operation voltage
-        self.Pmax = 50 # kPa back pressure air
-        self.Pmin = -38 # kPa suction pressure air
+        self.VAmp = (abs(self.Vmax)+abs(self.Vmin))/2
+        self.VOff = self.Vmax - self.VAmp
+        
+        self.Pmax = 50*10**3 # Pa back pressure air
+        self.Pmin = -38*10**3 # Pa suction pressure air
 
         
     def stroke(self, voltage):
@@ -146,10 +152,10 @@ if __name__ == '__main__':
     curves['pressure']  = [pump.P(v)  for v in curves['vcc']]
     curves.plot(x='vcc', y='pressure', ax=ax1)
     ax1.set_xlabel('Voltage [V]')
-    ax1.set_ylabel('Pressure [kPa]')
+    ax1.set_ylabel('Pressure [Pa]')
     curves = pd.DataFrame(columns=['vcc', 'capacity'])
     curves['vcc'] = np.linspace(-100, 300, 251)
     curves['capacity']  = [pump.C(v)  for v in curves['vcc']]
     curves.plot(x='vcc', y='capacity', ax=ax2)
     ax2.set_xlabel('Voltage [V]')
-    ax2.set_ylabel('Pressure [m³/kPa]')    
+    ax2.set_ylabel('Pressure [m³/Pa]')    

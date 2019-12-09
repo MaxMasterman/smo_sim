@@ -10,19 +10,23 @@ Pc0 = 0 # startdruck in der pumpkammer
 
 f = 1/35 # signal frequency
 steps = 500 # anzahl der zeitschritte
-t_space = np.linspace(0, 2/f, steps, endpoint=True)# # simulation time
+t_space = np.linspace(0, 4/f, steps, endpoint=True)# # simulation time
 
-signal = Signal(amplitude=1, frequency=f)
+water = Water()
+pump = Pump(medium=water)
+
+uamp = pump.VAmp
+uoff = pump.VOff
+
+signal = Signal(amplitude=uamp, frequency=f, offset=uoff)
 us = signal.rect # anregungssignal der pumpe
  
-water = Water()
-tube1 = Tube(r=10**-3, l=0.01, medium=water) # schlauch
-tube2 = Tube(r=10**-3, l=0.01, medium=water) # schaluch
+tube1 = Tube(r=0.5*10**-3, l=0.01, medium=water) # schlauch
+tube2 = Tube(r=0.5*10**-3, l=0.01, medium=water) # schaluch
 
 # velve types: foward, backward, constant
 velve1 = Velve(R_open=1, R_close=10**9, direction='forward') # ventiltyp
 velve2 = Velve(R_open=10, R_close=10**9, direction='backward') # ventiltyp
-pump = Pump(medium=water)
 
 ##############################################################################
 
@@ -38,7 +42,7 @@ def du_dt(p, t):
 pc = odeint(du_dt, Pc0, t_space)[:, 0]
 
 data = pd.DataFrame(columns = ['t', 'V_signal', 'P_chamber', 'P_reservoir1', 'P_reservoir2'])
-data['P_chamber'] =  pc
+data['P_chamber'] =  pc/1000
 data['t'] =  t_space
 data['V_signal'] = [us(t) for t in t_space]
 #data['P_reservoir1'] = [Pr1 for _ in t_space]
@@ -47,5 +51,6 @@ data['V_signal'] = [us(t) for t in t_space]
 axes = data.plot(x='t', y=['V_signal', 'P_chamber', 'P_reservoir1', 'P_reservoir2'])
 axes.set_title(pump)
 axes.set_xlabel('Time [s]')
-axes.set_ylabel('Pressure [Pa]')
+axes.set_ylabel('Pressure [kPa]')
+
 
