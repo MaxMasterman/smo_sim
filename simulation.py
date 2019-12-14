@@ -8,16 +8,16 @@ Pr1 = 0 # reservoirdruck
 Pr2 = 0 # reservoirdruck
 Pc0 = 0 # startdruck in der pumpkammer
 
-f = 1/35 # signal frequency
+f = 1/20 # signal frequency
 steps = 500 # anzahl der zeitschritte
 t_space = np.linspace(0, 4/f, steps, endpoint=True)# # simulation time
 
-signal = Signal(amplitude=130, frequency=f, offset=60)
+signal = Signal(amplitude=130, frequency=f, offset=-60)
 us = signal.rect # anregungssignal der pumpe
  
 water = Water()
-t1 = Tube(r=10**-3, l=0.01, medium=water) # schlauch
-t2 = Tube(r=10**-3, l=0.01, medium=water) # schaluch
+t1 = Tube(r=10**-3, l=1, medium=water) # schlauch
+t2 = Tube(r=10**-3, l=1, medium=water) # schaluch
 
 # velve types: foward, backward, constant
 v1 = Velve(R_open=10**1, R_close=10**9, direction='forward') # ventiltyp
@@ -49,3 +49,4 @@ axes = data.plot(x='t', y=['P_signal', 'P_chamber', 'P_reservoir1', 'P_reservoir
 axes.set_title(pump)
 axes.set_xlabel('Time [s]')
 axes.set_ylabel('Pressure [Pa]')
+
