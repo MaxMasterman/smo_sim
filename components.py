@@ -23,8 +23,9 @@ class Pump:
     def __repr__(self):
         return " TUDOS "
     
-    def __init__(self, medium):
+    def __init__(self, medium, nu=0.0001):
         self.medium = medium
+        self.nu = nu # mass for the slope
         self.diameter = 5.7*10**-3 # m
         self.A = np.pi*self.diameter/4
         
@@ -39,40 +40,23 @@ class Pump:
         self.Pmin = -38*10**3 # Pa suction pressure air
 
     def stroke(self, voltage):
-        if voltage >= 0:
-            if voltage > self.Vmax:
-                return self.zmax
-            else:
-                return self.zmax*voltage/self.Vmax
-        if voltage < 0:
-            if voltage < self.Vmin:
-                return self.zmin
-            else:
-                return self.zmin*voltage/self.Vmin
+        return (self.zmin - self.zmax) / (np.exp((voltage)/self.nu) + 1) + self.zmax
         
     def C(self, voltage):
-        return self.A*self.zmax
-        #return (self.V0 + self.A*self.stroke(voltage))/self.P(voltage)
+        return (self.V0 + self.A*self.stroke(voltage))/self.P(voltage)
     
     def P(self, voltage):
-        if voltage >= 0:
-            if voltage > self.Vmax:
-                return self.Pmax
-            else:
-                return self.Pmax*voltage/self.Vmax
-        if voltage < 0:
-            if voltage < self.Vmin:
-                return self.Pmin
-            else:
-                return self.Pmin*voltage/self.Vmin
+        return (self.Pmin - self.Pmax) / (np.exp((voltage)/self.nu) + 1) + self.Pmax
     
 class Velve:
     
-    def __init__(self, R_open, R_close, direction):
+    def __init__(self, R_open, R_close, direction, nu=0.1, v_switch=0):
         self.R_open = R_open
         self.R_close = R_close
         self.R_actual = R_open
         self.direction = direction
+        self.nu = nu # mass for the slope
+        self.v_switch = v_switch # voltage to open
         
     def R(self, u):
         return getattr(self, self.direction)(u)
@@ -81,18 +65,11 @@ class Velve:
         return self.R*np.sqrt(abs(u))
         
     def backward(self, u):
-        if u > 0: # druckhub
-            self.R_actual = self.R_close
-        else: # saughub
-            self.R_actual = self.R_open
-        return self.R_actual
-        
+        return (self.R_open - self.R_close) / (np.exp((u-self.v_switch)/self.nu) + 1) + self.R_close
+
     def forward(self, u):
-        if u > 0: # druckhub
-            self.R_actual = self.R_open
-        else: # saughub
-            self.R_actual = self.R_close
-        return self.R_actual
+        return (self.R_close - self.R_open) / (np.exp((u-self.v_switch)/self.nu) + 1) + self.R_open
+
         
 class Tube:
     
@@ -115,7 +92,7 @@ if __name__ == '__main__':
     # vizualize signals amplitudes
     signal = Signal(amplitude=5, frequency=1, offset=2)
     curves = pd.DataFrame(columns=['t', 'sin', 'rect'])
-    curves['t'] = np.linspace(0, 3, 251)
+    curves['t'] = np.linspace(0, 3, 1000)
     curves['sin']  = [signal.sin(t)  for t in curves['t']]
     curves['rect'] = [signal.rect(t) for t in curves['t']]
     curves.plot(x='t', y=['sin', 'rect'], ax=ax1)
@@ -123,10 +100,10 @@ if __name__ == '__main__':
     ax1.set_ylabel('Voltage [V]')
     
     # vizualize velve resistance
-    v1 = Velve(R_open=1, R_close=10**9, direction='forward')
-    v2 = Velve(R_open=1, R_close=10**9, direction='backward')
+    v1 = Velve(R_open=1, R_close=10**9, direction='forward', v_switch=10)
+    v2 = Velve(R_open=1, R_close=10**9, direction='backward', v_switch=-10)
     curves = pd.DataFrame(columns=['u', 'v_fw', 'v_bw'])
-    curves['u'] = np.linspace(-1, 1, 251)
+    curves['u'] = np.linspace(-50, 150, 1000)
     curves['v_fw'] = [v1.R(u) for u in curves['u']]
     curves['v_bw'] = [v2.R(u) for u in curves['u']]
     curves.plot(x='u', y=['v_fw', 'v_bw'], ax=ax2)
@@ -139,15 +116,17 @@ if __name__ == '__main__':
     # visualize pump pressure and capacity
     water = Water()
     pump = Pump(medium=water)
-    curves = pd.DataFrame(columns=['vcc', 'pressure'])
-    curves['vcc'] = np.linspace(-100, 300, 251)
+    curves = pd.DataFrame(columns=['vcc', 'stroke', 'pressure'])
+    curves['vcc'] = np.linspace(-100, 300, 1000)
     curves['pressure']  = [pump.P(v)  for v in curves['vcc']]
-    curves.plot(x='vcc', y='pressure', ax=ax1)
+    curves['stroke']  = [pump.stroke(v)  for v in curves['vcc']]
+    curves.plot(x='vcc', y=['stroke'], ax=ax1)
     ax1.set_xlabel('Voltage [V]')
     ax1.set_ylabel('Pressure [kPa]')
     curves = pd.DataFrame(columns=['vcc', 'capacity'])
-    curves['vcc'] = np.linspace(-100, 300, 251)
+    curves['vcc'] = np.linspace(-100, 300, 1000)
     curves['capacity']  = [pump.C(v)  for v in curves['vcc']]
     curves.plot(x='vcc', y='capacity', ax=ax2)
     ax2.set_xlabel('Voltage [V]')
-    ax2.set_ylabel('Pressure [m³/kPa]')    
+    ax2.set_ylabel('Capacity [m³/Pa]')    
+    
