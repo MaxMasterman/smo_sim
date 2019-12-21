@@ -28,9 +28,8 @@ class Pump:
         self.nu = nu # mass for the slope
         self.diameter = 5.7*10**-3 # m
         self.A = np.pi*self.diameter/4
-        
         self.z0 = 1*10**-3 # m
-        
+        self.V0 = self.A*self.z0
         ''' 
         Auslenkung realer Piezoaktor z.B.: 2um
         (https://www.physikinstrumente.de/de/produkte/piezoelektrische-wandler-transducer-piezoaktoren/pd0xx-runde-picma-chip-aktoren-100850/#specification) 
@@ -38,18 +37,24 @@ class Pump:
         
         self.zmax = 35*10**-6 # m ANNAHME
         self.zmin = -15*10**-6 # m ANNAHME
-        self.V0 = self.A*self.z0
-        
+        self.zAmp = (self.zmax + abs(self.zmin))/2
+        self.zOff = self.zmax - (self.zmax + abs(self.zmin))/2
+
         self.Vmax = 240 # V operation voltage
         self.Vmin = -76 # V operation voltage
+        self.VAmp = (self.Vmax + abs(self.Vmin))/2
+        self.VOff = self.Vmax - (self.Vmax + abs(self.Vmin))/2
+            
         self.Pmax = 50*10**3 # Pa back pressure air
         self.Pmin = -38*10**3 # Pa suction pressure air
+        self.PAmp = (self.Pmax + abs(self.Pmin))/2
+        self.POff = self.Pmax - (self.Pmax + abs(self.Pmin))/2
 
     def stroke(self, voltage):
         return (self.zmin - self.zmax) / (np.exp((voltage)/self.nu) + 1) + self.zmax
         
     def C(self, voltage):
-        return (self.V0 + self.A*self.stroke(voltage))/self.P(voltage)
+        return abs((self.V0 + self.A*self.stroke(voltage))/self.P(voltage))
     
     def P(self, voltage):
         return (self.Pmin - self.Pmax) / (np.exp((voltage)/self.nu) + 1) + self.Pmax
