@@ -1,5 +1,6 @@
 import numpy as np
 from materials import Water
+from scipy.signal import unit_impulse
 
 class Signal:
     
@@ -17,6 +18,11 @@ class Signal:
     def sin(self, t):
         return self.amplitude*(np.sin(2*np.pi*t/self.period)) + self.offset
     
+    def dirac(self, t):
+        if (t % self.period) = 0:
+            return unit_impulse()
+        elif (t % self.period and t % self.period/2) = 0:
+            return -unit_impulse()
     
 class Pump:
     
@@ -54,7 +60,8 @@ class Pump:
         return (self.zmin - self.zmax) / (np.exp((voltage)/self.nu) + 1) + self.zmax
         
     def C(self, voltage):
-        return abs((self.V0 + self.A*self.stroke(voltage))/self.P(voltage))
+        return 9.26*10**-9
+        #return abs((self.V0 + self.A*self.stroke(voltage))/self.P(voltage))
     
     def P(self, voltage):
         return (self.Pmin - self.Pmax) / (np.exp((voltage)/self.nu) + 1) + self.Pmax
